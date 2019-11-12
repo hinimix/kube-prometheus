@@ -8,11 +8,11 @@ metadata:
 spec:
   baseImage: quay.io/prometheus/alertmanager
   nodeSelector:
-    kubernetes.io/os: linux
+    beta.kubernetes.io/os: linux
   replicas: 3
   securityContext:
     fsGroup: 2000
     runAsNonRoot: true
     runAsUser: 1000
   serviceAccountName: alertmanager-main
-  version: v0.18.0
+  version: v0.17.0

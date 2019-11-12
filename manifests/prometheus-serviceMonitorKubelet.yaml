@@ -11,10 +11,6 @@ spec:
     honorLabels: true
     interval: 30s
     port: https-metrics
-    relabelings:
-    - sourceLabels:
-      - __metrics_path__
-      targetLabel: metrics_path
     scheme: https
     tlsConfig:
       insecureSkipVerify: true
@@ -28,10 +24,6 @@ spec:
       - __name__
     path: /metrics/cadvisor
     port: https-metrics
-    relabelings:
-    - sourceLabels:
-      - __metrics_path__
-      targetLabel: metrics_path
     scheme: https
     tlsConfig:
       insecureSkipVerify: true
