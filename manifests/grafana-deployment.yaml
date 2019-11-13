@@ -45,6 +45,9 @@ spec:
         - mountPath: /grafana-dashboard-definitions/0/apiserver
           name: grafana-dashboard-apiserver
           readOnly: false
+        - mountPath: /grafana-dashboard-definitions/0/cluster-dashboard
+          name: grafana-dashboard-cluster-dashboard
+          readOnly: false
         - mountPath: /grafana-dashboard-definitions/0/cluster-total
           name: grafana-dashboard-cluster-total
           readOnly: false
@@ -117,6 +120,9 @@ spec:
       - configMap:
           name: grafana-dashboard-apiserver
         name: grafana-dashboard-apiserver
+      - configMap:
+          name: grafana-dashboard-cluster-dashboard
+        name: grafana-dashboard-cluster-dashboard
       - configMap:
           name: grafana-dashboard-cluster-total
         name: grafana-dashboard-cluster-total

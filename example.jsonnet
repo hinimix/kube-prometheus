@@ -10,6 +10,9 @@ local kp =
     _config+:: {
       namespace: 'monitoring',
     },
+    grafanaDashboards+:: {
+      'cluster-dashboard.json': (import 'k8s-cluster-summary_rev.json'),
+    },
   };
 
 { ['setup/0namespace-' + name]: kp.kubePrometheus[name] for name in std.objectFields(kp.kubePrometheus) } +
