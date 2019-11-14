@@ -81,8 +81,9 @@ local ds =
 
 在`fluentd.libsonnet`, 我们定义mixin的`DaemonSet`, 
 现在开始看**ksonnet**真正工作的样子, 
-这个mixin指明了Fluentd需要的`VolumeMounts`和`Volumes`(和`DaemonSet`定义分离的)
-这个东西让我们从部署细节上解耦了程序的定义
+
+mixin指明了Fluentd需要的`VolumeMounts`和`Volumes`(和`DaemonSet`定义分离的)
+让我们从部署细节上解耦了程序的定义
 
 需要注意下列片段: `addHostMountedPodLogs`的参数`containerSelector`, 
 我们传输了一个函数给`ds.mapContainers`来迭代我们自己的容器(这里是Fluentd容器), 
