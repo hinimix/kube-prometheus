@@ -82,12 +82,12 @@ local ds =
 在`fluentd.libsonnet`, 我们定义mixin的`DaemonSet`, 
 现在开始看**ksonnet**真正工作的样子, 
 
-mixin指明了Fluentd需要的`VolumeMounts`和`Volumes`(和`DaemonSet`定义分离的)
-让我们从部署细节上解耦了程序的定义
+mixin指明了Fluentd需要的`VolumeMounts`和`Volumes`(和`DaemonSet`定义分离的), 
+这让我们从部署细节上解耦了程序的定义
 
 需要注意下列片段: `addHostMountedPodLogs`的参数`containerSelector`, 
 我们传输了一个函数给`ds.mapContainers`来迭代我们自己的容器(这里是Fluentd容器), 
-添加了容器需要的VolumeMounts
+添加了容器需要的VolumeMounts, 
 `Pod`的日志也从函数里被抽象出来
 
 
@@ -171,10 +171,11 @@ mixin指明了Fluentd需要的`VolumeMounts`和`Volumes`(和`DaemonSet`定义分
 ```
 
 
-打开这个代码段
+打开这个代码段: 
 
 `fluentd.libsonnet` 定义了所有需要的RBAC对象. 
-注意我们分别抽象了ServiceAccount的属性, 在单独的`config`对象里指定他们的值
+注意我们分别抽象了ServiceAccount的属性, 在单独的`config`对象里指定他们的值, 
+
 这种方法能让我们确定ServiceAccount是不是正确关联了需要的对象
 
 
@@ -233,7 +234,8 @@ local config = {
 
 ## 总结
 
-我们从最开始, 到建了一个简单的DaemonSet, 它的pod日志, 它的访问权限
+我们从最开始, 到建了一个简单的DaemonSet, 它的pod日志和它的访问权限
+
 你看到了日志和权限是分开, 我们这样定义不需要重写整个配置
 
 
@@ -256,8 +258,7 @@ local ds =
 
 既然你要写一个自定义的mixins, 可以试试如何导入一个最小的组件来操作
 
-And feel free to contribute your own examples to our mixins
-repository!
+And feel free to contribute your own examples to our mixins repository!
 
 [readme]: ../../readme.md "ksonnet readme"
 [fluentd-mixin]: https://github.com/ksonnet/mixins/tree/master/incubator/fluentd
