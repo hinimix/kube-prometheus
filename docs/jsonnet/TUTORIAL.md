@@ -1,85 +1,66 @@
-# Tutorial
+# Ksonnet使用手册
 
-One of the strengths of **ksonnet** mixin libraries is their ability
-to allow users to separate a Kubernetes application into several
-modular components.
+源项目[ksonnet][ksonnet]
 
-For example, a team might split into application and logging subteams.
-Rather than writing a single YAML file that combines them into a
-single Kubernetes app, the logging team can simply write a mixin
-library that the application team can use to add logging to their
-Kubernetes application definition.
+## 介绍
+**ksonnet** mixin libraries 允许使用人把一个kubernetes程序分割成几个模块化的组件
 
-In this tutorial, we will explore how such libraries are constructed,
-using a mixin library for [fluentd][fluentd] (hosted in the official
-[mixins repository][fluentd-mixin]). Specifically, we see how one team
-writing an app using [Elasticsearch][elastic] can use the Fluentd
-mixin library to use easily configure Fluentd to tail the
-Elasticsearch logs and pass them Kibana to be rendered in a dashboard.
+比如, 一个开发小组的YAML文件可以分割成应用小分队和日志小分队来分别写各自的YAML文件.
+可以让日志小分队的人先写yaml, 然后应用小分队添加并引用即可, 这样比写一个单个的YAML
+文件好多了
 
-For more information about Elasticsearch and Kibana, see [the Elastic
-website][elastic]. For `fluentd`, see [the Fluentd website][fluentd].
+在这里, 我们会探讨libraries如何构建, 用[fluentd][fluentd]的mixin库(官方仓库
+[mixins repository][fluentd-mixin]).
+我们可以看到一个用[Elasticsearch][elastic]的团队如何使用Fluentd的mixin库轻松
+的配置Fluentd去tail Elasticsearch的日志, 然后传输给Kibana提交给Dashboard
 
-## Requirements to build your own mixins
 
-If you want to build your own mixin libraries, or write **ksonnet**
-using the built-in mixins, you need to perform the following tasks.
-For details, see the [readme][readme].
+* 点击[the Elasticwebsite][elastic] 获取`Elasticsearch`, `Kibana`相关概念
+* 点击[the Fluentd website][fluentd], 获取`fluentd`相关概念
 
-* Install **Jsonnet**, version 0.9.4 or later
-* Clone the **ksonnet** repository locally
-* Install and configure the Visual Studio Code extension (optional)
-* Create a test Kubernetes cluster
 
-## Architecture and design
+## 构建mixin的需求
+如果想要构建自己的mixin库, 或者想在**ksonnet**里使用内建的mixins, 需要执行以下标
+星任务
 
-The idea of the application is for Elasticsearch to emit logs to
-standard out, and for Fluentd to tail those logs and send them to
-Kibana for rendering.
+* 安装 **Jsonnet**, version 0.9.4 or later
+* 本地 clone **ksonnet** repository
+* 安装和配置Visual Studio Code extension (可选的)
+* 建立一个测试的kubernetes集群
 
-In Kubernetes, accessing the `Pod` logs involves:
+## 设计和架构
 
-* Giving the Fluentd container permissions to access the `Pod` logs,
-   and
-* Appending volume mounts that contain the `Pod` logs, to the Fluentd
-   container, so that it can access them.
+办法是让Elasticsearch程序的发送日志到标准输出, 然后Fluentd tail这些日志后发送
+搭配Kibana呈现出来
 
-We'll walk through the key parts of the files in example in detail,
-but at a high level this implementation is broken up as:
+在Kubernetes里, 访问`Pod`的日志涉及以下几个条件
+* 让Fluentd有权限去访问`Pod`日志
+* 把有`Pod`日志的存储卷追加到Fluentd的容器里, 以便Fluentd访问
 
-* A `DaemonSet` that causes Fluentd to run once on every machine, so
-  that it can tail `Pod` logs for Elasticsearch running anywhere in
-  the cluster.
+这里会详细介绍example的关键细节, 在更高的角度上, 这个流程被分解为
+* `DaemonSet`: 部署在每一个主机上, 以便于tail `Pod`日志, 无论
+  Elasticsearch运行在哪个主机上, 都可以被tail
 
-  On its own, this `DaemonSet` only contains the core Fluentd
-  application definition. For example, it has no permissions to access
-  (_e.g._) `Pod` Logs, or the volume mounts required to access them.
-* A separate mixin that defines the `VolumeMounts` and `Volumes` that
-  the `DaemonSet` requires to access the `Pod` Logs.
-* A separate mixin that configures the access permissions for the
-  `DaemonSet`
-* The RBAC objects that the cluster administrator must send to the
-  cluster so that the `ServiceAccount` associated with Fluentd can be
-  granted permission to obtain the `Pod` logs.
+  这个`DaemonSet`只包含核心Fluentd程序定义, 它没有权限去访问`Pod`日志, 也没有挂载可以访问的存储卷
+  
+* 一个单独的mixin定义了`DaemonSet` 需要访问 `Pod` 日志的 `VolumeMounts` 和 `Volumes`
+* 一个单独的mixin定义了`DaemonSet`的访问权限
+* 一个RBAC对象, 集群管理员需要发送给集群认证,有权限访问`Pod` 日志
 
-The power of this approach lies in its separation of concerns: an
-application developer can define the `DaemonSet`, while a cluster
-admin can define the access permissions that this or any other
-`DaemonSet` might require. The `DaemonSet` or the access permissions
-can be modified as needed without requiring a complete cluster
-reconfiguration. Indeed, as the `DaemonSet` mixin demonstrates, the
-details of the `DaemonSet` (in this case, the `Volumes` and
-`VolumeMounts`) can also be adjusted without having to touch the base
-`DaemonSet` definition.
+这套用法分割了不同部分的关注点:
+开发人员可以定义`DaemonSet`,
+集群管理员定义权限, 或者其他`DaemonSet`用到的权限,
+在不用重载整个集群配置的情况下, `DeamonSet`或者访问权限可以被单独修改
+在这里, 我们定义的`DaemonSet`信息可以在不调整基础`DaemonSet`定义情
+况下定义`Volumes`和`VolumeMounts`
 
-### Define mixins to configure access to pod logs
 
-Let's look at how we can decouple the pieces of a complete Fluentd
-configuration, so that your logging team, for example, can write just
-the core of a Fluentd DaemonSet, and then write a **ksonnet** library
-that lets you customize key details of the configuration as needed.
+### 定义mixins去配置访问pod日志
 
-`fluentd-es-ds.jsonnet` defines a basic DaemonSet, and then adds access permissions to it.
+来看一下我们如何解耦一个完整的Fluentd配置, 让日志小分队只写Fluentd的
+DaemonSet核心, 然后写一个**ksonnet**库让你去自定义关键细节
+
+`fluentd-es-ds.jsonnet` 定义了一个基础的DaemonSet, 给它添加访问权限
 
 ```javascript
 // daemonset
@@ -92,25 +73,22 @@ local ds =
  // create access permissions for pod logs
  local rbacObjs = fluentd.app.admin.rbacForPodLogs(config);
 ```
+> 注意这个基础的DaemonSet什么都不能做, 它不知道什么pod日志是它需要的, 
+> * 它需要Volumes和VolumeMount来提供日志信息在哪
+> * 它还需要访问权限, RBAC
+>
+看看这东西还有什么优点
 
-Note that our base DaemonSet can't do anything. It doesn't know where
-the pod logs that it needs are -- it needs Volumes and VolumeMounts to
-provide this information. It also needs access permissions, provided
-with RBAC. So we add these items separately. Let's look more closely
-at the advantages of this approach.
+在`fluentd.libsonnet`, 我们定义mixin的`DaemonSet`, 
+现在开始看**ksonnet**真正工作的样子, 
+这个mixin指明了Fluentd需要的`VolumeMounts`和`Volumes`(和`DaemonSet`定义分离的)
+这个东西让我们从部署细节上解耦了程序的定义
 
-In `fluentd.libsonnet`, we define the `daemonSet` mixin. Here is where
-we start to see the real power of **ksonnet** mixins at work. This
-mixin specifies the VolumeMounts and Volumes that Fluentd requires
-separately from the DaemonSet definition itself. This approach lets us
-decouple application definitions from deployment details.
+需要注意下列片段: `addHostMountedPodLogs`的参数`containerSelector`, 
+我们传输了一个函数给`ds.mapContainers`来迭代我们自己的容器(这里是Fluentd容器), 
+添加了容器需要的VolumeMounts
+`Pod`的日志也从函数里被抽象出来
 
-Note particularly in the following snippet the `containerSelector`
-parameter to `addHostMountedPodLogs`. We pass this function to
-`ds.mapContainers` to iterate over our containers (in this case, our
-Fluentd containers) and add the VolumeMounts that they need. (The
-details of the pod logs have also been abstracted away to their own
-function.)
 
 ```javascript
   mixin:: {
@@ -143,10 +121,10 @@ function.)
   },
 ```
 
-The `daemonSetBuilder` that we used to create the DaemonSet calls our
-`daemonSet` mixin, and also defines the `configureForPodLogs` function
-that the DaemonSet needs. But the DaemonSet itself, from our first
-code snippet, doesn't need to know any of these details:
+是我们用`daemonSetBuilder`来创建DaemonSet叫做`daemonSet mixin` 
+同时定义了DaemoSEt需要的`configureForPodLogs`方法
+ 
+从上一个代码段里, 我们可以知道DaemonSet自身并不知道这些细节
 
 ```javascript
     daemonSetBuilder:: {
@@ -173,21 +151,16 @@ code snippet, doesn't need to know any of these details:
     },
 ```
 
-In the previous snippet, we notice that we're specifying a Service
-Account, and RBAC is involved. It's time to define our RBAC objects so
-that our Fluentd access permissions mean something.
+在前面代码段里, 我们注意到我们指明了ServiceAccount
+现在该配置RBAC对象来赋予Fluentd的访问权限了.
 
-### Define RBAC objects
 
-We define RBAC objects separately so that they can be managed
-independently of the rest of the cluster configuration. This approach
-lets cluster admins and application developers work independently.
-Your cluster admins can determine and define access permissions that
-can be applied to application configurations with a few lines of code.
+### 定义 RBAC 对象
+单独的定义RBAC对象能分开单独管理, 这让集群管理人员和程序开发人员分开工作,
+集群管理人员可以用很少几行来确定和定义应用程序的访问权限,
 
-Defining access permissions in Kubernetes requires definition of the
-RBAC objects that are encapsulated in this definition (from
-`fluentd.libsonnet`).
+定义Kubernetes的访问权限的RBAC对象封装在下列定义里`fluentd.libsonnet`
+
 
 ```javascript
     admin:: {
@@ -196,13 +169,13 @@ RBAC objects that are encapsulated in this definition (from
     },
 ```
 
-Let's unpack this snippet.
 
-`fluentd.libsonnet` also defines all the required RBAC objects. Note
-especially that we abstract the attributes of the Service Account
-separately and assign their values in a separate `config` object. This
-approach lets us make sure that the correct Service Account is
-appropriately associated with all required objects.
+打开这个代码段
+
+`fluentd.libsonnet` 定义了所有需要的RBAC对象. 
+注意我们分别抽象了ServiceAccount的属性, 在单独的`config`对象里指定他们的值
+这种方法能让我们确定ServiceAccount是不是正确关联了需要的对象
+
 
 ```javascript
     rbac(name, namespace)::
@@ -237,7 +210,7 @@ appropriately associated with all required objects.
 
 ```
 
-In `fluentd-es-ds.jsonnet` we define our config thus:
+在 `fluentd-es-ds.jsonnet` 里我们这样定义:
 
 ```javascript
 local config = {
@@ -255,17 +228,13 @@ local config = {
 };
 ```
 
-The relevant fields here are `namespace` and `AccountName`, which we
-pass as the arguments that our RBAC snippet needs when it calls the
-`rbac` function.
+我们可以用rbac方法字段调用`namespace` 和 `AccountName`, 
 
-## Wrap it all up
+## 总结
 
-Here's where we started, with our simple DaemonSet, its pod logging,
-and its access permissions. But now you've seen what's going on
-underneath -- not just how the functions for adding pod logs and
-permissions are clearly separated, but how we can customize them as
-needed without having to rewrite the entire configuration.
+我们从最开始, 到建了一个简单的DaemonSet, 它的pod日志, 它的访问权限
+你看到了日志和权限是分开, 我们这样定义不需要重写整个配置
+
 
 ```javascript
 // daemonset
@@ -279,21 +248,18 @@ local ds =
  local rbacObjs = fluentd.app.admin.rbacForPodLogs(config);
 ```
 
-## Explore further
+## 更近一步
 
-The GitHub example directory also includes the generated JSON files.
-Examine them to help understand the details of how **ksonnet**'s
-decomposition and abstraction are compiled into complete
-configurations.
+这个例子也包含了生成JSON files, 帮助我们理解了 **ksonnet**的细节, 
+分解和抽象了完整的配置
 
-As you start to write your own custom mixins, look also at how we
-break down the basic **ksonnet** imports into smaller component
-objects for easier manipulation.
+既然你要写一个自定义的mixins, 可以试试如何导入一个最小的组件来操作
 
 And feel free to contribute your own examples to our mixins
 repository!
 
-[readme]: ../readme.md "ksonnet readme"
+[readme]: ../../readme.md "ksonnet readme"
 [fluentd-mixin]: https://github.com/ksonnet/mixins/tree/master/incubator/fluentd
 [fluentd]: http://www.fluentd.org/architecture
 [elastic]: https://www.elastic.co/products
+[ksonnet]: https://github.com/ksonnet/ksonnet
