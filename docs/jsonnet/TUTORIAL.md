@@ -20,8 +20,7 @@
 
 
 ## 构建mixin的需求
-如果想要构建自己的mixin库, 或者想在**ksonnet**里使用内建的mixins, 需要执行以下标
-星任务
+如果想要构建自己的mixin库, 或者想在**ksonnet**里使用内建的mixins, 需要执行以下任务
 
 * 安装 **Jsonnet**, version 0.9.4 or later
 * 本地 clone **ksonnet** repository
@@ -30,14 +29,13 @@
 
 ## 设计和架构
 
-办法是让Elasticsearch程序的发送日志到标准输出, 然后Fluentd tail这些日志后发送
-搭配Kibana呈现出来
+把Elasticsearch程序的发送日志到标准输出, 然后Fluentd tail这些日志后发送到Kibana呈现出来
 
 在Kubernetes里, 访问`Pod`的日志涉及以下几个条件
 * 让Fluentd有权限去访问`Pod`日志
 * 把有`Pod`日志的存储卷追加到Fluentd的容器里, 以便Fluentd访问
 
-这里会详细介绍example的关键细节, 在更高的角度上, 这个流程被分解为
+这里会详细介绍一下关键的细节, 在更高的角度上, 这个流程被分解为
 * `DaemonSet`: 部署在每一个主机上, 以便于tail `Pod`日志, 无论
   Elasticsearch运行在哪个主机上, 都可以被tail
 
@@ -49,7 +47,7 @@
 
 这套用法分割了不同部分的关注点:
 开发人员可以定义`DaemonSet`,
-集群管理员定义权限, 或者其他`DaemonSet`用到的权限,
+集群管理人员定义权限, 或者其他`DaemonSet`用到的权限,
 在不用重载整个集群配置的情况下, `DeamonSet`或者访问权限可以被单独修改
 在这里, 我们定义的`DaemonSet`信息可以在不调整基础`DaemonSet`定义情
 况下定义`Volumes`和`VolumeMounts`
