@@ -32,8 +32,10 @@ This stack is meant for cluster monitoring, so it is pre-configured to collect m
 
 ## 快速开始
 
-> 适用版本是kubernetes v1.16.2, 更早的没测过, 估计也行
-
+> 使用ksonnet.beta.4版本的openapi
+>
+> 适用版本是kubernetes v1.14.0-v1.16.2
+>
 > 默认的namespace: monitoring
 
 
